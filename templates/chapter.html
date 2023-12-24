@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>{{ title }}</title>
+  </head>
+  <body>
+    <div id="content">{{ content }}</div>
+    {% if next_chapter <= total_chapters %}
+    <a href="{{ url_for('chapter', chapter=next_chapter) }}">下一章</a>
+    {% endif %}
+  </body>
+</html>
