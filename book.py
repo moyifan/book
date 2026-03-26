@@ -41,8 +41,20 @@ def load_chapters_from_file():
                 content = f.read()
 
     chapter_parts = re.split(r'(\n第[一二三四五六七八九十百千万1234567890]+[章节].*\n)', content)
-    preface = chapter_parts.pop(0) if chapter_parts and chapter_parts[0].strip() != '' else '无前言'
-    chapters = [('前言', preface)] + [(chapter_parts[i].strip(), chapter_parts[i+1]) for i in range(0, len(chapter_parts), 2) if i+1 < len(chapter_parts)]
+    preface = ''
+    if chapter_parts and chapter_parts[0].strip() != '':
+        preface = chapter_parts.pop(0)
+    
+    # 确保chapters列表在使用前是清空的
+    chapters.clear()
+    chapters.append(('前言', preface.strip() if preface else '无前言'))
+
+    # 解析章节
+    for i in range(0, len(chapter_parts), 2):
+        if i + 1 < len(chapter_parts):
+            title = chapter_parts[i].strip()
+            content = chapter_parts[i+1].strip()
+            chapters.append((title, content))
 
 
 @app.route('/upload', methods=['POST'])
@@ -58,7 +70,7 @@ def upload_file():
 def chapter(chapter):
     if 0 <= chapter - 1 < len(chapters):
         chapter_title, chapter_content = chapters[chapter - 1]
-        return render_template('chapter.html', title=chapter_title, content=chapter_content, next_chapter=chapter + 1, total_chapters=len(chapters))
+        return render_template('chapter.html', title=chapter_title, content=chapter_content, chapter=chapter, next_chapter=chapter + 1, total_chapters=len(chapters))
     return '章节不存在'
 
 if __name__ == '__main__':
