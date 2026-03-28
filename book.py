@@ -10,19 +10,12 @@ chapters = []
 # 设置上传文件的路径
 uploaded_file_path = os.path.join('uploads', 'uploaded_novel.txt')
 
-@app.route('/')
-def index():
-    # 检查文件是否存在
-    if os.path.exists(uploaded_file_path):
-        # 如果文件存在，直接加载内容
-        load_chapters_from_file()
-        return redirect(url_for('chapter', chapter=1))
-    else:
-        # 如果文件不存在，显示上传页面
-        return render_template('index.html')
-
 def load_chapters_from_file():
     global chapters
+    if not os.path.exists(uploaded_file_path):
+        chapters = []
+        return
+
     with open(uploaded_file_path, 'rb') as f:
         raw_data = f.read(50000)  # 读取前 50,000 字节来判断编码
         detected_encoding = chardet.detect(raw_data)['encoding']
@@ -56,6 +49,16 @@ def load_chapters_from_file():
             content = chapter_parts[i+1].strip()
             chapters.append((title, content))
 
+@app.route('/')
+def index():
+    # 检查文件是否存在
+    if os.path.exists(uploaded_file_path):
+        # 如果文件存在，直接加载内容
+        load_chapters_from_file()
+        return redirect(url_for('chapter', chapter=1))
+    else:
+        # 如果文件不存在，显示上传页面
+        return render_template('index.html')
 
 @app.route('/upload', methods=['POST'])
 def upload_file():
@@ -66,8 +69,24 @@ def upload_file():
         return redirect(url_for('chapter', chapter=1))
     return redirect(url_for('index'))
 
+@app.route('/delete', methods=['POST'])
+def delete_file():
+    global chapters
+    if os.path.exists(uploaded_file_path):
+        os.remove(uploaded_file_path)
+    chapters = []
+    return redirect(url_for('index'))
+
 @app.route('/<int:chapter>')
 def chapter(chapter):
+    # 如果内存中没有章节数据，尝试从文件加载
+    if not chapters:
+        if os.path.exists(uploaded_file_path):
+            load_chapters_from_file()
+        else:
+            return redirect(url_for('index'))
+
+    # 检查章节是否存在
     if 0 <= chapter - 1 < len(chapters):
         chapter_title, chapter_content = chapters[chapter - 1]
         return render_template('chapter.html', title=chapter_title, content=chapter_content, chapter=chapter, next_chapter=chapter + 1, total_chapters=len(chapters))
@@ -75,3 +94,4 @@ def chapter(chapter):
 
 if __name__ == '__main__':
     app.run(debug=True)
+
